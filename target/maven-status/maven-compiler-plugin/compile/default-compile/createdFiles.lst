@@ -1,0 +1,12 @@
+app\Login.class
+database\UserSession.class
+app\Client.class
+app\Main$1.class
+database\authorization.class
+app\Main$CouponDialog.class
+database\tableLoad.class
+app\Main.class
+app\Login$1.class
+database\ReportService.class
+database\DBConnection.class
+database\ShiftService.class
