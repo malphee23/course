@@ -505,10 +505,18 @@ public class Main extends JFrame {
         String name = nameField.getText().trim();
         String city = cityField.getText().trim();
         String street = streetField.getText().trim();
-        String house = houseField.getText().trim();
+        String houseText = houseField.getText().trim();
 
-        if (code.isEmpty() || name.isEmpty() || city.isEmpty() || street.isEmpty() || house.isEmpty()) {
+        if (code.isEmpty() || name.isEmpty() || city.isEmpty() || street.isEmpty() || houseText.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Заполните все поля", "Ошибка", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        long house;
+        try {
+            house = Long.parseLong(houseText);
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Номер дома должен быть числом", "Ошибка", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
@@ -519,7 +527,7 @@ public class Main extends JFrame {
             ps.setString(2, name);
             ps.setString(3, city);
             ps.setString(4, street);
-            ps.setString(5, house);
+            ps.setLong(5, house);
             ps.executeUpdate();
             model.reload();
         } catch (SQLException e) {
@@ -548,9 +556,9 @@ public class Main extends JFrame {
         String numberText = numberField.getText().trim();
         String city = cityField.getText().trim();
         String street = streetField.getText().trim();
-        String house = houseField.getText().trim();
+        String houseText = houseField.getText().trim();
 
-        if (numberText.isEmpty() || city.isEmpty() || street.isEmpty() || house.isEmpty()) {
+        if (numberText.isEmpty() || city.isEmpty() || street.isEmpty() || houseText.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Заполните все поля", "Ошибка", JOptionPane.ERROR_MESSAGE);
             return;
         }
@@ -563,13 +571,21 @@ public class Main extends JFrame {
             return;
         }
 
+        long house;
+        try {
+            house = Long.parseLong(houseText);
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Номер дома должен быть числом", "Ошибка", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
         String sql = "INSERT INTO \"CashDesk\"(cashdesk_number, city, street, house) VALUES (?, ?, ?, ?)";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, number);
             ps.setString(2, city);
             ps.setString(3, street);
-            ps.setString(4, house);
+            ps.setLong(4, house);
             ps.executeUpdate();
             model.reload();
         } catch (SQLException e) {
