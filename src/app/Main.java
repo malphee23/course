@@ -303,6 +303,10 @@ public class Main extends JFrame {
         scrollPane.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         centerPanel.add(header, BorderLayout.NORTH);
         centerPanel.add(scrollPane, BorderLayout.CENTER);
+        JPanel actionPanel = createDirectoryActionsPanel(title, model);
+        if (actionPanel != null) {
+            centerPanel.add(actionPanel, BorderLayout.SOUTH);
+        }
 
         refreshCenter();
     }
@@ -416,32 +420,18 @@ public class Main extends JFrame {
     }
 
     /**
-     * Создаёт панель с кнопками "Добавить/Изменить/Удалить" для справочников.
-     * Для роли "кассир": только "Изменить" и "Удалить". Для роли "диспетчер": все три действия.
+     * Создаёт панель с кнопкой "Добавить" для справочников диспетчера.
      */
-    private JPanel createDirectoryActionsPanel(String tableTitle) {
+    private JPanel createDirectoryActionsPanel(String tableTitle, EditableTableModel model) {
         String role = user.getRole();
         List<String> actions = new ArrayList<>();
 
         if ("dispatcher".equals(role)) {
-            // Для диспетчера: полный набор действий для всех справочников
             if (tableTitle.equals("Авиакомпании")
                     || tableTitle.equals("Кассы")
                     || tableTitle.equals("Кассиры")
-                    || tableTitle.equals("Клиенты")
-                    || tableTitle.equals("Билеты")
-                    || tableTitle.equals("Купоны")) {
+                    || tableTitle.equals("Клиенты")) {
                 actions.add("Добавить");
-                actions.add("Изменить");
-                actions.add("Удалить");
-            }
-        } else if ("cashier".equals(role)) {
-            // Для кассира: только изменение/удаление для некоторых справочников
-            if (tableTitle.equals("Клиенты")
-                    || tableTitle.equals("Билеты")
-                    || tableTitle.equals("Купоны")) {
-                actions.add("Изменить");
-                actions.add("Удалить");
             }
         }
 
@@ -455,18 +445,232 @@ public class Main extends JFrame {
         for (String action : actions) {
             JButton btn = createStyledButton(action);
             btn.setPreferredSize(new Dimension(130, 36));
-            btn.addActionListener(e ->
-                    JOptionPane.showMessageDialog(
-                            this,
-                            "Действие \"" + action + "\" для таблицы \"" + tableTitle + "\" пока не реализовано.",
-                            "Информация",
-                            JOptionPane.INFORMATION_MESSAGE
-                    )
-            );
+            btn.addActionListener(e -> handleDirectoryAction(action, tableTitle, model));
             panel.add(btn);
         }
 
         return panel;
+    }
+
+    private void handleDirectoryAction(String action, String tableTitle, EditableTableModel model) {
+        if (!"dispatcher".equals(user.getRole())) {
+            return;
+        }
+
+        if ("Добавить".equals(action)) {
+            switch (tableTitle) {
+                case "Авиакомпании" -> addAirline(model);
+                case "Кассы" -> addCashDesk(model);
+                case "Кассиры" -> addCashier(model);
+                case "Клиенты" -> addClient(model);
+                default -> JOptionPane.showMessageDialog(
+                        this,
+                        "Добавление для таблицы \"" + tableTitle + "\" не реализовано.",
+                        "Информация",
+                        JOptionPane.INFORMATION_MESSAGE
+                );
+            }
+            return;
+        }
+
+        JOptionPane.showMessageDialog(
+                this,
+                "Действие \"" + action + "\" для таблицы \"" + tableTitle + "\" пока не реализовано.",
+                "Информация",
+                JOptionPane.INFORMATION_MESSAGE
+        );
+    }
+
+    private void addAirline(EditableTableModel model) {
+        JTextField codeField = new JTextField();
+        JTextField nameField = new JTextField();
+        JTextField cityField = new JTextField();
+        JTextField streetField = new JTextField();
+        JTextField houseField = new JTextField();
+
+        Object[] message = {
+                "Код авиакомпании:", codeField,
+                "Название:", nameField,
+                "Город:", cityField,
+                "Улица:", streetField,
+                "Дом:", houseField
+        };
+
+        int option = JOptionPane.showConfirmDialog(this, message, "Добавить авиакомпанию", JOptionPane.OK_CANCEL_OPTION);
+        if (option != JOptionPane.OK_OPTION) {
+            return;
+        }
+
+        String code = codeField.getText().trim();
+        String name = nameField.getText().trim();
+        String city = cityField.getText().trim();
+        String street = streetField.getText().trim();
+        String house = houseField.getText().trim();
+
+        if (code.isEmpty() || name.isEmpty() || city.isEmpty() || street.isEmpty() || house.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Заполните все поля", "Ошибка", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        String sql = "INSERT INTO \"Airlines\"(airline_code, name, city, street, house) VALUES (?, ?, ?, ?, ?)";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, code);
+            ps.setString(2, name);
+            ps.setString(3, city);
+            ps.setString(4, street);
+            ps.setString(5, house);
+            ps.executeUpdate();
+            model.reload();
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Ошибка при добавлении: " + e.getMessage(), "Ошибка", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void addCashDesk(EditableTableModel model) {
+        JTextField numberField = new JTextField();
+        JTextField cityField = new JTextField();
+        JTextField streetField = new JTextField();
+        JTextField houseField = new JTextField();
+
+        Object[] message = {
+                "Номер кассы:", numberField,
+                "Город:", cityField,
+                "Улица:", streetField,
+                "Дом:", houseField
+        };
+
+        int option = JOptionPane.showConfirmDialog(this, message, "Добавить кассу", JOptionPane.OK_CANCEL_OPTION);
+        if (option != JOptionPane.OK_OPTION) {
+            return;
+        }
+
+        String numberText = numberField.getText().trim();
+        String city = cityField.getText().trim();
+        String street = streetField.getText().trim();
+        String house = houseField.getText().trim();
+
+        if (numberText.isEmpty() || city.isEmpty() || street.isEmpty() || house.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Заполните все поля", "Ошибка", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        int number;
+        try {
+            number = Integer.parseInt(numberText);
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Номер кассы должен быть числом", "Ошибка", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        String sql = "INSERT INTO \"CashDesk\"(cashdesk_number, city, street, house) VALUES (?, ?, ?, ?)";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, number);
+            ps.setString(2, city);
+            ps.setString(3, street);
+            ps.setString(4, house);
+            ps.executeUpdate();
+            model.reload();
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Ошибка при добавлении: " + e.getMessage(), "Ошибка", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void addCashier(EditableTableModel model) {
+        JTextField numberField = new JTextField();
+        JTextField lastNameField = new JTextField();
+        JTextField firstNameField = new JTextField();
+        JTextField middleNameField = new JTextField();
+
+        Object[] message = {
+                "Номер кассира:", numberField,
+                "Фамилия:", lastNameField,
+                "Имя:", firstNameField,
+                "Отчество (при наличии):", middleNameField
+        };
+
+        int option = JOptionPane.showConfirmDialog(this, message, "Добавить кассира", JOptionPane.OK_CANCEL_OPTION);
+        if (option != JOptionPane.OK_OPTION) {
+            return;
+        }
+
+        String numberText = numberField.getText().trim();
+        String lastName = lastNameField.getText().trim();
+        String firstName = firstNameField.getText().trim();
+        String middleName = middleNameField.getText().trim();
+
+        if (numberText.isEmpty() || lastName.isEmpty() || firstName.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Заполните обязательные поля", "Ошибка", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        int number;
+        try {
+            number = Integer.parseInt(numberText);
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Номер кассира должен быть числом", "Ошибка", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        String sql = "INSERT INTO \"Cashier\"(cashier_number, last_name, first_name, middle_name) VALUES (?, ?, ?, ?)";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, number);
+            ps.setString(2, lastName);
+            ps.setString(3, firstName);
+            ps.setString(4, middleName.isEmpty() ? null : middleName);
+            ps.executeUpdate();
+            model.reload();
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Ошибка при добавлении: " + e.getMessage(), "Ошибка", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void addClient(EditableTableModel model) {
+        JTextField seriesField = new JTextField();
+        JTextField numberField = new JTextField();
+        JTextField lastNameField = new JTextField();
+        JTextField firstNameField = new JTextField();
+        JTextField middleNameField = new JTextField();
+
+        Object[] message = {
+                "Серия паспорта:", seriesField,
+                "Номер паспорта:", numberField,
+                "Фамилия:", lastNameField,
+                "Имя:", firstNameField,
+                "Отчество (при наличии):", middleNameField
+        };
+
+        int option = JOptionPane.showConfirmDialog(this, message, "Добавить клиента", JOptionPane.OK_CANCEL_OPTION);
+        if (option != JOptionPane.OK_OPTION) {
+            return;
+        }
+
+        String series = seriesField.getText().trim();
+        String number = numberField.getText().trim();
+        String lastName = lastNameField.getText().trim();
+        String firstName = firstNameField.getText().trim();
+        String middleName = middleNameField.getText().trim();
+
+        if (series.isEmpty() || number.isEmpty() || lastName.isEmpty() || firstName.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Заполните обязательные поля", "Ошибка", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        String sql = "INSERT INTO \"Client\"(passport_series, passport_number, last_name, first_name, middle_name) VALUES (?, ?, ?, ?, ?)";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, series);
+            ps.setString(2, number);
+            ps.setString(3, lastName);
+            ps.setString(4, firstName);
+            ps.setString(5, middleName.isEmpty() ? null : middleName);
+            ps.executeUpdate();
+            model.reload();
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Ошибка при добавлении: " + e.getMessage(), "Ошибка", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private void refreshCenter() {
